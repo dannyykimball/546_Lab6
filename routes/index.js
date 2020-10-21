@@ -1,5 +1,15 @@
-const bookRoutes = require("./books");
-const reviewRoutes = require("./reviews");
+/*
+ *  Daniel Kimball
+ *  Professor Hill
+ *  CS 546
+ *  Lab 5
+ *  9 October 2020
+ *  I pledge my honor that I have abided by the Stevens Honor System.
+ *
+ */
+
+const bookRoutes = require("./books.js");
+const reviewRoutes = require("./reviews.js");
 
 const constructorMethod = (app) => {
   app.use("/books", bookRoutes);

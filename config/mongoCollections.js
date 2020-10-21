@@ -1,3 +1,13 @@
+/*
+ *  Daniel Kimball
+ *  Professor Hill
+ *  CS 546
+ *  Lab 6
+ *  20 October 2020
+ *  I pledge my honor that I have abided by the Stevens Honor System.
+ *
+ */
+
 const dbConnection = require("./mongoConnection");
 
 /* This will allow you to have one reference to each collection per app */
@@ -17,6 +27,6 @@ const getCollectionFn = (collection) => {
 
 /* Now, you can list your collections here: */
 module.exports = {
-  posts: getCollectionFn("books"),
-  users: getCollectionFn("reviews"),
+  books: getCollectionFn("books"),
+  reviews: getCollectionFn("reviews"),
 };

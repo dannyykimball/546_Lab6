@@ -1,70 +1,124 @@
+/*
+ *  Daniel Kimball
+ *  Professor Hill
+ *  CS 546
+ *  Lab 6
+ *  20 October 2020
+ *  I pledge my honor that I have abided by the Stevens Honor System.
+ *
+ */
+
 const express = require("express");
 const router = express.Router();
 const data = require("../data");
-const postData = data.posts;
+const bookData = data.books;
 
-router.get("/:id", async (req, res) => {
-  try {
-    const post = await postData.getPostById(req.params.id);
-    res.json(post);
-  } catch (e) {
-    res.status(404).json({ error: "Post not found" });
-  }
-});
-
-router.get("/tag/:tag", async (req, res) => {
-  const postList = await postData.getPostsByTag(req.params.tag);
-  res.json(postList);
-});
-
+//get all
 router.get("/", async (req, res) => {
   try {
-    const postList = await postData.getAllPosts();
-    res.json(postList);
+    const bookList = await bookData.readAllBooks();
+    res.json(bookList);
   } catch (e) {
     res.status(500).json({ error: e });
   }
 });
 
+//post
 router.post("/", async (req, res) => {
-  const blogPostData = req.body;
-  if (!blogPostData.title) {
-    res.status(400).json({ error: "You must provide blog post title" });
+  const detailedBookData = req.body;
+  //title
+  if (!detailedBookData.title) {
+    res.status(400).json({ error: "You must provide detailed book title" });
     return;
   }
-  if (!blogPostData.body) {
-    res.status(400).json({ error: "You must provide blog post body" });
+  //author
+  if (!detailedBookData.author) {
+    res.status(400).json({ error: "You must provide detailed book author" });
     return;
   }
-  if (!blogPostData.posterId) {
-    res.status(400).json({ error: "You must provide poster ID" });
+  //genre
+  if (!detailedBookData.genre) {
+    res.status(400).json({ error: "You must provide detailed book genre" });
     return;
   }
+  //dataPublished
+  if (!detailedBookData.dataPublished) {
+    res
+      .status(400)
+      .json({ error: "You must provide detailed book dataPublished" });
+    return;
+  }
+  //summary
+  if (!detailedBookData.summary) {
+    res.status(400).json({ error: "You must provide detailed book summary" });
+    return;
+  }
+  //reviews
+  if (!detailedBookData.reviews) {
+    res.status(400).json({ error: "You must provide detailed book reviews" });
+    return;
+  }
+
+  //post it
   try {
-    const { title, body, tags, posterId } = blogPostData;
-    const newPost = await postData.addPost(title, body, tags, posterId);
-    res.json(newPost);
+    const {
+      title,
+      author,
+      genre,
+      datePublished,
+      summary,
+      reviews,
+    } = detailedBookData;
+    const newBook = await bookData.createBook(
+      title,
+      author,
+      genre,
+      datePublished,
+      summary,
+      reviews
+    );
+    res.json(newBook);
   } catch (e) {
     res.status(500).json({ error: e });
+  }
+});
+
+//get by id
+router.get("/:id", async (req, res) => {
+  try {
+    const book = await bookData.readBook(req.params.id);
+    res.json(book);
+  } catch (e) {
+    res.status(404).json({ error: "Book not found" });
   }
 });
 
 router.put("/:id", async (req, res) => {
   const updatedData = req.body;
-  if (!updatedData.title || !updatedData.body || !updatedData.posterId) {
+  if (
+    !updatedData.title ||
+    !updatedData.author ||
+    !updatedData.genre ||
+    !updatedData.datePublished ||
+    !updatedData.summary ||
+    !updatedData.reviews
+  ) {
     res.status(400).json({ error: "You must Supply All fields" });
     return;
   }
+
+  //get it
   try {
-    await postData.getPostById(req.params.id);
+    await bookData.readBook(req.params.id);
   } catch (e) {
-    res.status(404).json({ error: "Post not found" });
+    res.status(404).json({ error: "Book not found" });
     return;
   }
 
+  //put it
   try {
-    const updatedPost = await postData.updatePost(req.params.id, updatedData);
-    res.json(updatedPost);
+    const updatedBook = await bookData.updateBook(req.params.id, updatedData);
+    res.json(updatedBook);
   } catch (e) {
     res.status(500).json({ error: e });
   }
@@ -73,27 +127,51 @@ router.put("/:id", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   const requestBody = req.body;
   let updatedObject = {};
+
+  //try
   try {
-    const oldPost = await postData.getPostById(req.params.id);
-    if (requestBody.title && requestBody.title !== oldPost.title)
+    const oldBook = await bookData.readBook(req.params.id);
+    //title
+    if (requestBody.title && requestBody.title !== oldBook.title) {
       updatedObject.title = requestBody.title;
-    if (requestBody.body && requestBody.body !== oldPost.body)
-      updatedObject.body = requestBody.body;
-    if (requestBody.tags && requestBody.tags !== oldPost.tags)
-      updatedObject.tags = requestBody.tags;
-    if (requestBody.posterId && requestBody.posterId !== oldPost.posterId)
-      updatedObject.posterId = requestBody.posterId;
+    }
+
+    //author
+    if (requestBody.author && requestBody.author !== oldBook.author) {
+      updatedObject.author = requestBody.author;
+    }
+    //genre
+    if (requestBody.genre && requestBody.genre !== oldBook.genre) {
+      updatedObject.genre = requestBody.genre;
+    }
+    //datePublished
+    if (
+      requestBody.datePublished &&
+      requestBody.datePublished !== oldBook.datePublished
+    ) {
+      updatedObject.datePublished = requestBody.datePublished;
+    }
+    //summary
+    if (requestBody.summary && requestBody.summary !== oldBook.summary) {
+      updatedObject.summary = requestBody.summary;
+    }
+    //reviews
+    if (requestBody.reviews && requestBody.reviews !== oldBook.reviews) {
+      updatedObject.reviews = requestBody.reviews;
+    }
   } catch (e) {
-    res.status(404).json({ error: "Post not found" });
+    res.status(404).json({ error: "Book not found" });
     return;
   }
+
+  //nothing changed
   if (Object.keys(updatedObject).length !== 0) {
     try {
-      const updatedPost = await postData.updatePost(
+      const updatedBook = await bookdata.updateBook(
         req.params.id,
         updatedObject
       );
-      res.json(updatedPost);
+      res.json(updatedBook);
     } catch (e) {
       res.status(500).json({ error: e });
     }
@@ -107,17 +185,20 @@ router.patch("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   if (!req.params.id) {
-    res.status(400).json({ error: "You must Supply and ID to delete" });
+    //grammar lol, it used to say "and ID"
+    res.status(400).json({ error: "You must Supply an ID to delete" });
     return;
   }
+  //get it
   try {
-    await postData.getPostById(req.params.id);
+    await bookData.readBook(req.params.id);
   } catch (e) {
-    res.status(404).json({ error: "Post not found" });
+    res.status(404).json({ error: "Book not found" });
     return;
   }
+  //delete it
   try {
-    await postData.removePost(req.params.id);
+    await bookData.deleteBook(req.params.id);
     res.sendStatus(200);
   } catch (e) {
     res.status(500).json({ error: e });

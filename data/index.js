@@ -1,5 +1,5 @@
 const bookData = require("./books");
-const reviewData = require("./review");
+const reviewData = require("./reviews");
 
 module.exports = {
   books: bookData,

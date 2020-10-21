@@ -1,112 +1,183 @@
+/*
+ *  Daniel Kimball
+ *  Professor Hill
+ *  CS 546
+ *  Lab 6
+ *  20 October 2020
+ *  I pledge my honor that I have abided by the Stevens Honor System.
+ *
+ */
+
 const mongoCollections = require("../config/mongoCollections");
-const posts = mongoCollections.posts;
-const users = require("./users");
-const uuid = require("uuid/v4");
+const books = mongoCollections.books;
 
 const exportedMethods = {
-  async getAllPosts() {
-    const postCollection = await posts();
-    return await postCollection.find({}).toArray();
-  },
-  async getPostsByTag(tag) {
-    if (!tag) throw "No tag provided";
-
-    const postCollection = await posts();
-    return await postCollection.find({ tags: tag }).toArray();
-  },
-  async getPostById(id) {
-    const postCollection = await posts();
-    const post = await postCollection.findOne({ _id: id });
-
-    if (!post) throw "Post not found";
-    return post;
-  },
-  async addPost(title, body, tags, posterId) {
-    if (typeof title !== "string") throw "No title provided";
-    if (typeof body !== "string") throw "I aint got nobody!";
-
-    if (!Array.isArray(tags)) {
-      tags = [];
+  /*
+  ------------------------------------------------------------------------------------
+  * async createBook();
+  ------------------------------------------------------------------------------------
+  */
+  async createBook(title, author, genre, datePublished, summary, reviews) {
+    if (!title) {
+      throw new Error("Missing title");
+    } else if (typeof title !== "string") {
+      throw new Error(title + " is not DATATYPE: STRING");
+    } else if (title == "" || !title.replace(/\s/g, "").length) {
+      throw new Error("Input: [" + title + "] is an empty string");
     }
 
-    const postCollection = await posts();
+    if (!author) {
+      throw new Error("Missing author");
+    } else if (typeof author !== "string") {
+      throw new Error(author + " is not DATATYPE: STRING");
+    } else if (author == "" || !author.replace(/\s/g, "").length) {
+      throw new Error("Input: [" + author + "] is an empty string");
+    }
 
-    const userThatPosted = await users.getUserById(posterId);
+    if (!genre) {
+      throw new Error("Missing genre");
+    } else if (!Array.isArray(genre)) {
+      throw new Error("Genre is not DATATYPE: ARRAY");
+    } else if (genre.length < 1) {
+      throw new Error("Input: [" + genre + "] is an empty string");
+    }
 
-    const newPost = {
+    //date field
+    if (!datePublished) {
+      throw new Error("Missing datePublished");
+    } else if (typeof datePublished !== "string") {
+      throw new Error(datePublished + " is not DATATYPE: STRING");
+    } else if (
+      datePublished == "" ||
+      !datePublished.replace(/\s/g, "").length
+    ) {
+      throw new Error("Input: [" + datePublished + "] is an empty string");
+    }
+
+    if (!summary) {
+      throw new Error("Missing summary");
+    } else if (typeof summary !== "string") {
+      throw new Error(summary + " is not DATATYPE: STRING");
+    } else if (summary == "" || !summary.replace(/\s/g, "").length) {
+      throw new Error("Input: [" + summary + "] is an empty string");
+    }
+
+    if (!Array.isArray(reviews)) {
+      reviews = [];
+    }
+
+    const bookCollection = await books();
+
+    const newBook = {
       title: title,
-      body: body,
-      poster: {
-        id: posterId,
-        name: `${userThatPosted.firstName} ${userThatPosted.lastName}`,
-      },
-      tags: tags,
-      _id: uuid(),
+      author: author,
+      genre: genre,
+      datePublished: datePublished,
+      summary: summary,
+      reviews: reviews,
     };
 
-    const newInsertInformation = await postCollection.insertOne(newPost);
+    //insert
+    const newInsertInformation = await bookCollection.insertOne(newBook);
     const newId = newInsertInformation.insertedId;
 
-    await users.addPostToUser(posterId, newId, title);
-
-    return await this.getPostById(newId);
+    //console log info
+    return await this.read(newId);
   },
-  async removePost(id) {
-    const postCollection = await posts();
-    let post = null;
+
+  /*
+  ------------------------------------------------------------------------------------
+  * async readAll(); //get all
+  ------------------------------------------------------------------------------------
+  */
+  async readAllBooks() {
+    const bookCollection = await books();
+
+    //console log all
+    return await bookCollection.find({}).toArray();
+  },
+  /*
+  ------------------------------------------------------------------------------------
+  * async read(); //get by id
+  ------------------------------------------------------------------------------------
+  */
+  async readBook(id) {
+    const bookCollection = await bookCollection();
+    const book = await bookCollection.findOne({ _id: id });
+
+    if (!book) throw "Book not found";
+
+    //for the console.log
+    return book;
+  },
+  /*
+  ------------------------------------------------------------------------------------
+  * async update();
+  ------------------------------------------------------------------------------------
+  */
+  async updateBook(id, updatedBook) {
+    const bookCollection = await books();
+
+    const updatedBookData = {};
+
+    //checked title
+    if (updatedBook.title) {
+      updatedBookData.title = updatedBook.title;
+    }
+    //checked author
+    if (updatedBook.author) {
+      updatedBookData.author = updatedBook.author;
+    }
+    //checked genre
+    if (updatedBook.genre) {
+      updatedBookData.genre = updatedBook.genre;
+    }
+    //checked datePublished
+    if (updatedBook.datePublished) {
+      updatedBookData.datePublished = updatedBook.datePublished;
+    }
+    //checked summary
+    if (updatedBook.summary) {
+      updatedBookData.summary = updatedBook.summary;
+    }
+    //checked reviews
+    if (updatedBook.reviews) {
+      updatedBookData.reviews = updatedBook.reviews;
+    }
+
+    await bookCollection.updateOne({ _id: id }, { $set: updatedBookData });
+
+    //console log this
+    return await this.read(id);
+  },
+  /*
+  ------------------------------------------------------------------------------------
+  * async delete();
+  ------------------------------------------------------------------------------------
+  */
+  async deleteBook(id) {
+    const bookCollection = await books();
+
+    let book = null;
+
+    //try and select it
     try {
-      post = await this.getPostById(id);
+      book = await this.read(id);
     } catch (e) {
       console.log(e);
       return;
     }
-    const deletionInfo = await postCollection.removeOne({ _id: id });
+
+    const deletionInfo = await bookCollection.removeOne({ _id: id });
+
     if (deletionInfo.deletedCount === 0) {
-      throw `Could not delete post with id of ${id}`;
+      throw `Could not delete book with id of ${id}`;
     }
-    await users.removePostFromUser(post.poster.id, id);
+
+    //await users.removePostFromUser(post.poster.id, id);
+
+    //deletion worked
     return true;
-  },
-  async updatePost(id, updatedPost) {
-    const postCollection = await posts();
-
-    const updatedPostData = {};
-
-    if (updatedPost.tags) {
-      updatedPostData.tags = updatedPost.tags;
-    }
-
-    if (updatedPost.title) {
-      updatedPostData.title = updatedPost.title;
-    }
-
-    if (updatedPost.body) {
-      updatedPostData.body = updatedPost.body;
-    }
-
-    await postCollection.updateOne({ _id: id }, { $set: updatedPostData });
-
-    return await this.getPostById(id);
-  },
-  async renameTag(oldTag, newTag) {
-    if (oldTag === newTag) throw "tags are the same";
-    let findDocuments = {
-      tags: oldTag,
-    };
-
-    let firstUpdate = {
-      $addToSet: { tags: newTag },
-    };
-
-    let secondUpdate = {
-      $pull: { tags: oldTag },
-    };
-
-    const postCollection = await posts();
-    await postCollection.updateMany(findDocuments, firstUpdate);
-    await postCollection.updateMany(findDocuments, secondUpdate);
-
-    return await this.getPostsByTag(newTag);
   },
 };
 

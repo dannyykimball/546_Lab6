@@ -1,91 +1,143 @@
+/*
+ *  Daniel Kimball
+ *  Professor Hill
+ *  CS 546
+ *  Lab 6
+ *  20 October 2020
+ *  I pledge my honor that I have abided by the Stevens Honor System.
+ *
+ */
+
 const mongoCollections = require("../config/mongoCollections");
-const users = mongoCollections.users;
-const uuid = require("uuid/v4");
+const reviews = mongoCollections.reviews;
 
 let exportedMethods = {
-  async getAllUsers() {
-    const userCollection = await users();
-    const userList = await userCollection.find({}).toArray();
-    if (!userList) throw "No users in system!";
-    return userList;
-  },
-  // This is a fun new syntax that was brought forth in ES6, where we can define
-  // methods on an object with this shorthand!
-  async getUserById(id) {
-    const userCollection = await users();
-    const user = await userCollection.findOne({ _id: id });
-    if (!user) throw "User not found";
-    return user;
-  },
-  async addUser(firstName, lastName) {
-    const userCollection = await users();
-
-    let newUser = {
-      firstName: firstName,
-      lastName: lastName,
-      _id: uuid(),
-      posts: [],
-    };
-
-    const newInsertInformation = await userCollection.insertOne(newUser);
-    if (newInsertInformation.insertedCount === 0) throw "Insert failed!";
-    return await this.getUserById(newInsertInformation.insertedId);
-  },
-  async removeUser(id) {
-    const userCollection = await users();
-    const deletionInfo = await userCollection.removeOne({ _id: id });
-    if (deletionInfo.deletedCount === 0) {
-      throw `Could not delete user with id of ${id}`;
+  /*
+  ------------------------------------------------------------------------------------
+  * async create();
+  ------------------------------------------------------------------------------------
+  */
+  async createReview(
+    title,
+    reviewer,
+    bookBeingReviewed,
+    rating,
+    dateOfReview,
+    review
+  ) {
+    if (!title) {
+      throw new Error("Missing title");
+    } else if (typeof title !== "string") {
+      throw new Error(title + " is not DATATYPE: STRING");
+    } else if (title == "" || !title.replace(/\s/g, "").length) {
+      throw new Error("Input: [" + title + "] is an empty string");
     }
-    return true;
-  },
-  async updateUser(id, updatedUser) {
-    const user = await this.getUserById(id);
-    console.log(user);
 
-    let userUpdateInfo = {
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
+    if (!reviewer) {
+      throw new Error("Missing reviewer");
+    } else if (typeof reviewer !== "string") {
+      throw new Error(reviewer + " is not DATATYPE: STRING");
+    } else if (reviewer == "" || !reviewer.replace(/\s/g, "").length) {
+      throw new Error("Input: [" + reviewer + "] is an empty string");
+    }
+
+    if (!bookBeingReviewed) {
+      throw new Error("Missing bookBeingReviewed");
+    }
+
+    if (!rating) {
+      throw new Error("Missing rating");
+    } else if (typeof rating !== "number") {
+      throw new Error(rating + " is not DATATYPE: NUMBER");
+    }
+
+    //datatype date
+    if (!dateOfReview) {
+      throw new Error("Missing dateOfReview");
+    } else if (typeof dateOfReview !== "string") {
+      throw new Error(dateOfReview + " is not DATATYPE: STRING");
+    }
+
+    if (!review) {
+      throw new Error("Missing review");
+    } else if (typeof review !== "string") {
+      throw new Error(review + " is not DATATYPE: STRING");
+    } else if (review == "" || !review.replace(/\s/g, "").length) {
+      throw new Error("Input: [" + review + "] is an empty string");
+    }
+
+    const reviewCollection = await reviews();
+
+    const newReview = {
+      title: title,
+      reviewer: reviewer,
+      bookBeingReviewed: bookBeingReviewed,
+      rating: rating,
+      dateOfReview: dateOfReview,
+      review: review,
     };
 
-    const userCollection = await users();
-    const updateInfo = await userCollection.updateOne(
-      { _id: id },
-      { $set: userUpdateInfo }
-    );
-    if (!updateInfo.matchedCount && !updateInfo.modifiedCount)
-      throw "Update failed";
+    //insert
+    const newInsertInformation = await reviewCollection.insertOne(newReview);
+    const newId = newInsertInformation.insertedId;
 
-    return await this.getUserById(id);
+    //console log info
+    return await this.read(newId);
   },
-  async addPostToUser(userId, postId, postTitle) {
-    let currentUser = await this.getUserById(userId);
-    console.log(currentUser);
 
-    const userCollection = await users();
-    const updateInfo = await userCollection.updateOne(
-      { _id: userId },
-      { $addToSet: { posts: { id: postId, title: postTitle } } }
-    );
+  /*
+  ------------------------------------------------------------------------------------
+  * async readAll(); //get all
+  ------------------------------------------------------------------------------------
+  */
+  async readAllReviews() {
+    const reviewCollection = await reviews();
 
-    if (!updateInfo.matchedCount && !updateInfo.modifiedCount)
-      throw "Update failed";
-
-    return await this.getUserById(userId);
+    //console log all
+    return await reviewCollection.find({}).toArray();
   },
-  async removePostFromUser(userId, postId) {
-    let currentUser = await this.getUserById(userId);
-    console.log(currentUser);
+  /*
+  ------------------------------------------------------------------------------------
+  * async read(); //get by id
+  ------------------------------------------------------------------------------------
+  */
+  async readReview(id) {
+    const reviewCollection = await reviewCollection();
+    const review = await reviewCollection.findOne({ _id: id });
 
-    const userCollection = await users();
-    const updateInfo = await userCollection.updateOne(
-      { _id: userId },
-      { $pull: { posts: { id: postId } } }
-    );
-    if (!updateInfo.matchedCount && !updateInfo.modifiedCount)
-      throw "Update failed";
+    if (!review) throw "Review not found";
 
-    return await this.getUserById(userId);
+    //for the console.log
+    return review;
+  },
+  /*
+  ------------------------------------------------------------------------------------
+  * async delete();
+  ------------------------------------------------------------------------------------
+  */
+  async deleteReview(id) {
+    const reviewCollection = await reviews();
+
+    let review = null;
+
+    //try and select it
+    try {
+      review = await this.read(id);
+    } catch (e) {
+      console.log(e);
+      return;
+    }
+
+    const deletionInfo = await reviewCollection.removeOne({ _id: id });
+
+    if (deletionInfo.deletedCount === 0) {
+      throw `Could not delete review with id of ${id}`;
+    }
+
+    //await users.removePostFromUser(post.poster.id, id);
+
+    //deletion worked
+    return true;
   },
 };
 
