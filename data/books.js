@@ -63,8 +63,10 @@ const exportedMethods = {
     }
 
     if (!Array.isArray(reviews)) {
-      reviews = [];
+      throw new Error(reviews + " is not DATATYPE: ARRAY");
     }
+
+    reviews = [];
 
     const bookCollection = await books();
 
